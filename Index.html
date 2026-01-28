@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Application Météo</title>
+    <style>
+        /* === STYLES GÉNÉRAUX === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* === CONTENEUR PRINCIPAL === */
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        /* === ZONE DE RECHERCHE === */
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        #cityInput {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 50px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        #cityInput:focus {
+            border-color: #11998e;
+        }
+
+        #searchBtn {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #searchBtn:hover {
+            transform: scale(1.05);
+        }
+
+        #searchBtn:active {
+            transform: scale(0.95);
+        }
+
+        /* === ZONE D'AFFICHAGE MÉTÉO === */
+        .weather-display {
+            text-align: center;
+            display: none;
+        }
+
+        .weather-display.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .city-name {
+            font-size: 32px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .weather-icon {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+        }
+
+        .temperature {
+            font-size: 48px;
+            font-weight: bold;
+            color: #11998e;
+            margin: 20px 0;
+        }
+
+        .description {
+            font-size: 20px;
+            color: #666;
+            text-transform: capitalize;
+            margin-bottom: 20px;
+        }
+
+        .weather-details {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .detail-item {
+            text-align: center;
+        }
+
+        .detail-label {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-size: 18px;
+            color: #333;
+            font-weight: bold;
+        }
+
+        /* === MESSAGE D'ERREUR === */
+        .error-message {
+            display: none;
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .error-message.show {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        /* === CHARGEMENT === */
+        .loading {
+            display: none;
+            text-align: center;
+            color: #11998e;
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .loading.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #11998e;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌤️ Météo du Jour</h1>
+        
+        <!-- Zone de recherche -->
+        <div class="search-box">
+            <input 
+                type="text" 
+                id="cityInput" 
+                placeholder="Entrez une ville (ex: Paris)"
+                autocomplete="off"
+            >
+            <button id="searchBtn">Rechercher</button>
+        </div>
+
+        <!-- Indicateur de chargement -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Chargement...</p>
+        </div>
+
+        <!-- Message d'erreur -->
+        <div class="error-message" id="errorMessage"></div>
+
+        <!-- Affichage de la météo -->
+        <div class="weather-display" id="weatherDisplay">
+            <div class="city-name" id="cityName"></div>
+            <img class="weather-icon" id="weatherIcon" src="" alt="Icône météo">
+            <div class="temperature" id="temperature"></div>
+            <div class="description" id="description"></div>
+            
+            <div class="weather-details">
+                <div class="detail-item">
+                    <div class="detail-label">Humidité</div>
+                    <div class="detail-value" id="humidity"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Vent</div>
+                    <div class="detail-value" id="wind"></div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Ressenti</div>
+                    <div class="detail-value" id="feelsLike"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === CONFIGURATION DE L'API ===
+        // Votre clé API personnelle OpenWeatherMap
+        const API_KEY = 'a0e9967c408e0fa1e716957a238f450e';
+        const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
+
+        // === RÉCUPÉRATION DES ÉLÉMENTS HTML ===
+        const cityInput = document.getElementById('cityInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const loading = document.getElementById('loading');
+        const errorMessage = document.getElementById('errorMessage');
+        const weatherDisplay = document.getElementById('weatherDisplay');
+        const cityName = document.getElementById('cityName');
+        const weatherIcon = document.getElementById('weatherIcon');
+        const temperature = document.getElementById('temperature');
+        const description = document.getElementById('description');
+        const humidity = document.getElementById('humidity');
+        const wind = document.getElementById('wind');
+        const feelsLike = document.getElementById('feelsLike');
+
+        // === FONCTION PRINCIPALE : RÉCUPÉRER LA MÉTÉO ===
+        async function getWeather(city) {
+            try {
+                // Cacher les messages précédents
+                hideAll();
+                
+                // Afficher le chargement
+                loading.classList.add('show');
+
+                // Construire l'URL de l'API avec les paramètres
+                const url = `${API_URL}?q=${city}&appid=${API_KEY}&units=metric&lang=fr`;
+                
+                // Faire la requête à l'API
+                const response = await fetch(url);
+                
+                // Vérifier si la réponse est OK
+                if (!response.ok) {
+                    throw new Error('Ville non trouvée');
+                }
+
+                // Convertir la réponse en JSON
+                const data = await response.json();
+                
+                // Afficher les données météo
+                displayWeather(data);
+
+            } catch (error) {
+                // En cas d'erreur, afficher un message
+                showError('Ville non trouvée. Vérifiez l\'orthographe et réessayez.');
+            } finally {
+                // Dans tous les cas, cacher le chargement
+                loading.classList.remove('show');
+            }
+        }
+
+        // === FONCTION : AFFICHER LES DONNÉES MÉTÉO ===
+        function displayWeather(data) {
+            // Remplir les éléments avec les données de l'API
+            cityName.textContent = `${data.name}, ${data.sys.country}`;
+            temperature.textContent = `${Math.round(data.main.temp)}°C`;
+            description.textContent = data.weather[0].description;
+            humidity.textContent = `${data.main.humidity}%`;
+            wind.textContent = `${Math.round(data.wind.speed * 3.6)} km/h`;
+            feelsLike.textContent = `${Math.round(data.main.feels_like)}°C`;
+            
+            // Construire l'URL de l'icône météo
+            const iconCode = data.weather[0].icon;
+            weatherIcon.src = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
+            weatherIcon.alt = data.weather[0].description;
+            
+            // Afficher la zone météo
+            weatherDisplay.classList.add('show');
+        }
+
+        // === FONCTION : AFFICHER UN MESSAGE D'ERREUR ===
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+        }
+
+        // === FONCTION : TOUT CACHER ===
+        function hideAll() {
+            weatherDisplay.classList.remove('show');
+            errorMessage.classList.remove('show');
+        }
+
+        // === ÉCOUTEURS D'ÉVÉNEMENTS ===
+        
+        // Quand on clique sur le bouton
+        searchBtn.addEventListener('click', () => {
+            const city = cityInput.value.trim();
+            if (city) {
+                getWeather(city);
+            } else {
+                showError('Veuillez entrer un nom de ville');
+            }
+        });
+
+        // Quand on appuie sur Entrée dans le champ
+        cityInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchBtn.click();
+            }
+        });
+
+        // === CHARGEMENT INITIAL ===
+        // Afficher la météo de Paris au démarrage (optionnel)
+        window.addEventListener('load', () => {
+            getWeather('Paris');
+        });
+    </script>
+</body>
+</html>
